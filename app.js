@@ -3,6 +3,9 @@ var path = require('path');
 var express = require('express');
 var logger = require('morgan');
 var bodyParser = require('body-parser');
+var cookieParser = require('cookie-parser');
+var passport = require('passport');
+var session = require('express-session');
 var MongoClient = require('mongodb').MongoClient;
 var url = "mongodb://localhost:27017/";
 
@@ -18,6 +21,38 @@ app.set('view engine', 'ejs');
 app.use(logger("dev"));
 
 app.use(bodyParser.urlencoded({extended:false}));
+app.use(cookieParser());
+app.use(session({
+	secret:"secretSession", 
+	resave:true,
+	saveUninitialized:true
+
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser(function(user, done){
+	done(null,user);
+});
+
+passport.deserializeUser(function(user, done){
+	done(null,user);
+});
+
+LocalStrategy = require('passport-local').Strategy;
+
+passport.use(new LocalStrategy({
+	usernameField:'',
+	passworldField:''
+	},
+	function(username, password, done){
+		var user = {
+			username: username,
+			password: password
+		};
+		done(null, user);
+	}));
 
 app.get("/", function(request,response){
 	MongoClient.connect(url, function(err,db){
@@ -38,12 +73,16 @@ app.get("/new-entry", function(request,response){
 	response.render("new-entry");	
 });
 
+app.get("/sign-in", function(request,response){
+	response.render("sign-in");	
+});
+
 app.post("/new-entry", function(request,response){
 	if(!request.body.title||!request.body.body) {
 		response.status(400).send("Entries must have some text!");
 		return;
 	}
-	
+	//connected to our database and saved games
 	MongoClient.connect(url,function(err, db){
 		if(err)throw err;
 		
@@ -66,6 +105,44 @@ app.post("/new-entry", function(request,response){
 	//response.redirect("/");
 
 });
+
+app.post("/sign-up", function(request,response){
+	
+	console.log(request.body);
+	MongoClient.connect(url,function(err, db){
+		if(err)throw err;
+		var dbObj = db.db("users");
+		
+		
+		
+		
+		var user = {
+			username: request.body.username,
+			password: request.body.password
+			
+		}
+		
+		dbObj.collection("users").insert(user,function(err, results){
+			if(err)throw err;
+			request.login(request.body, function(){
+				response.redirect('/profile');
+			});
+		
+		});
+	
+	});
+	
+});
+
+app.post("/sign-in", passport.authenticate('local', {
+	failureRedirect:'/sign-in'
+}), function(request,response){
+		response.redirect('/profile');
+});
+
+app.get('/profile', function(request,response){
+		response.json(request.user);
+	});
 
 app.use(function(request,response){
 	response.status(404).render("404");
