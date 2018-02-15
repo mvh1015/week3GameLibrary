@@ -7,7 +7,7 @@ var cookieParser = require('cookie-parser');
 var passport = require('passport');
 var session = require('express-session');
 var MongoClient = require('mongodb').MongoClient;
-var url = "mongodb://localhost:27017/";
+var url = "mongodb://Mike:hello@ds235708.mlab.com:35708/games";
 
 var app = express();
 
@@ -50,7 +50,7 @@ passport.use(new LocalStrategy({
 		MongoClient.connect(url, function(err, db){
 			if(err)throw err;
 			
-			var dbObj = db.db("users");
+			var dbObj = db.db("games");
 			
 			dbObj.collection("users").findOne({username:username}, function(err,results){
 				if(results.password === password) {
@@ -137,7 +137,7 @@ app.post("/sign-up", function(request,response){
 	console.log(request.body);
 	MongoClient.connect(url,function(err, db){
 		if(err)throw err;
-		var dbObj = db.db("users");
+		var dbObj = db.db("games");
 		
 		
 		
